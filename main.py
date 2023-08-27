@@ -1,4 +1,9 @@
 import pygame
+from noise_handler import Noise_Handler
+from numpy import array
+import numpy as np
+from noise_loop import get_polar_noise_2d
+
 
 class App:
     # main function from where everything is called
@@ -9,9 +14,16 @@ class App:
         self.time_per_frame = 1000 / self.fps
 
         self._running = True
-        self.display = None
+        self.display: pygame.display = None
 
-        self.size = (500, 500)
+        self.noise_frames = 10
+
+        self.size = array([500, 500])
+
+        self.noise = get_polar_noise_2d(self.noise_frames, self.size, 0.03, detail=8)
+        self.noise2 = get_polar_noise_2d(self.noise_frames, self.size, 0.03, detail=10)
+
+        self.png_path = "pngs/"
 
     # called once to start program
     def on_init(self):
@@ -35,7 +47,12 @@ class App:
 
     # loop which will only be called when enough cpu time is available
     def on_render(self):
-        self.display.fill((255, 255, 255))
+        self.display.fill((30, 144, 255))
+
+        for i in range(self.noise_frames):
+            self.draw_water(self.noise[i], self.noise2[i])
+            path = f"{self.png_path}layer{i}.png"
+            pygame.image.save(self.display, path)
 
         pygame.display.update()
 
@@ -63,6 +80,23 @@ class App:
                 lag -= self.time_per_frame
             self.on_render()
         self.on_cleanup()
+
+    def draw_water(self, noise_layer, noise_layer2):
+        for i in range(self.size[0]):
+            for j in range(self.size[1]):
+                val = noise_layer[i][j]
+                val2 = noise_layer2[i][j]
+                match val:
+                    case _ if val > 0.15:
+                        color = (135, 206, 250)
+
+                    case _:
+                        if -0.05 < val2 < 0.05:
+                            color = (200, 200, 255)
+                        else:
+                            color = (30, 144, 255)
+                self.display.set_at((i, j), color)
+            pygame.display.update()
 
 
 if __name__ == "__main__":
